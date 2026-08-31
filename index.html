@@ -189,11 +189,12 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .backup-banner.ok{background:rgba(124,179,220,.10);border-color:rgba(124,179,220,.35);color:var(--ice-2, #B7D4EA)}
 .backup-banner.warn{background:rgba(232,168,72,.12);border-color:rgba(232,168,72,.45);color:#F0C277}
 .backup-banner .bb-msg{font-weight:600}
-.backup-banner .bb-actions{display:flex;align-items:center;gap:14px}
+.backup-banner .bb-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  justify-content:flex-end;flex:0 1 auto;min-width:0}
 .backup-banner .bb-toggle{display:flex;align-items:center;gap:6px;color:var(--mist, #9AA8C0);
-  font-weight:500;cursor:pointer;font-size:.86rem;white-space:nowrap;line-height:1.3}
-.backup-banner .bb-msg{flex:1 1 260px;min-width:0}
-.backup-banner .btn{white-space:nowrap}
+  font-weight:500;cursor:pointer;font-size:.86rem;white-space:nowrap;line-height:1.3;flex:none}
+.backup-banner .bb-msg{flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.backup-banner .btn{white-space:nowrap;flex:none}
 .backup-banner .bb-toggle input{accent-color:var(--ice, #7CB3DC)}
 .btn.sm{padding:6px 12px;font-size:.84rem}
 
@@ -542,7 +543,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     <div id="backupBanner" class="backup-banner ok">
       <span class="bb-msg"></span>
       <span class="bb-actions">
-        <label class="bb-toggle"><input type="checkbox" id="autoBackupCb" onchange="toggleAutoBackup(this)"> Auto-backup after each save</label>
+        <label class="bb-toggle" title="Automatically download a backup after each save"><input type="checkbox" id="autoBackupCb" onchange="toggleAutoBackup(this)"> Auto-backup</label>
         <button class="btn sm" onclick="exportFullBackup()">Back up now</button>
       </span>
     </div>
@@ -3093,9 +3094,10 @@ function quadSet(){
 }
 
 /* ---------------- PRINTABLE REPORT CARD ---------------- */
-function openReport(){
-  grab();
-  const a=current; if(!a)return;
+function openReport(id){
+  const a=id?DB.find(x=>x.id===id):(grab(),current);
+  if(!a){toast('No athlete');return}
+  const __prev=current; current=a;
   const P=positionModel(), N=neutralPlan(), F=fpProfile(), S=sprintProfile();
   const flagged=P.asym.filter(x=>x.pct>=10).sort((x,y)=>y.pct-x.pct);
   const caution=P.asym.filter(x=>x.pct>=5&&x.pct<10);
@@ -3130,10 +3132,8 @@ function openReport(){
         <td class="n">${c||'—'}</td><td class="n">${s2||'—'}</td><td class="n">${r}</td></tr>`;
     }).filter(Boolean).join('');
 
-  const win=window.open('','_blank');
-  if(!win){toast('Allow pop-ups to open the report');return}
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>${esc(a.name||'Athlete')} — Performance Report</title>
+  const __html=(`<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>${esc((a.name||'Athlete').replace(/[^\w\s-]/g,''))} Performance Report</title>
 <style>
 @page{size:letter;margin:14mm}
 *{box-sizing:border-box}
@@ -3175,7 +3175,9 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 button{font:inherit;padding:8px 16px;border:1px solid #15202e;background:#15202e;color:#fff;
   border-radius:6px;cursor:pointer;font-weight:600}
 </style></head><body>
-<div class="noprint"><button onclick="window.print()">Print / Save as PDF</button></div>
+<div class="noprint"><button onclick="window.print()">Print / Save as PDF</button>
+      <span style="font-size:12px;color:#7a8798;margin-left:10px">In the print window set
+      Destination to "Save as PDF" to get a real PDF file.</span></div>
 <div class="hdr">
   <div><h1>${esc(a.name||'Athlete')}</h1>
     <div class="rmut">${esc([a.level,a.position].filter(Boolean).join(' · ')||'—')}</div></div>
@@ -3236,7 +3238,8 @@ ${kpis?`<h2>How we will know it worked</h2>
   from motion capture. This report supports coaching decisions and is not a medical assessment.
 </div>
 </body></html>`);
-  win.document.close();
+  current=(typeof __prev!=='undefined'&&__prev)?__prev:current;
+  openReportWindow(__html, document.title);
 }
 
 
@@ -3526,10 +3529,8 @@ function openProgressReport(id){
     </svg>`;
   }
 
-  const win=window.open('','_blank');
-  if(!win){toast('Allow pop-ups to open the report');return}
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>${esc(a.name||'Athlete')} — Progress Report</title><style>
+  const __html=(`<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>${esc((a.name||'Athlete').replace(/[^\w\s-]/g,''))} Progress Report</title><style>
 @page{size:letter;margin:14mm}
 *{box-sizing:border-box}
 body{font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,sans-serif;color:#15202e;
@@ -3559,7 +3560,9 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
   border-radius:6px;cursor:pointer;font-weight:600;margin-bottom:16px}
 @media print{.noprint{display:none}body{padding:0}h2{page-break-after:avoid}table{page-break-inside:avoid}}
 </style></head><body>
-<div class="noprint"><button onclick="window.print()">Print / Save as PDF</button></div>
+<div class="noprint"><button onclick="window.print()">Print / Save as PDF</button>
+      <span style="font-size:12px;color:#7a8798;margin-left:10px">In the print window set
+      Destination to "Save as PDF" to get a real PDF file.</span></div>
 <div class="hdr"><div><h1>${esc(a.name||'Athlete')}</h1>
   <div class="rmut">${esc([a.level,a.position].filter(Boolean).join(' · ')||'—')}</div></div>
   <div class="meta">Progress Report<br>${d}<br>${T.length} force-plate test${T.length===1?'':'s'} on record</div></div>
@@ -3610,7 +3613,7 @@ test. Range-of-motion differences are relative percentages between sides, not ab
 Predicted performance is a regression on this roster and moves as the roster grows. Supports
 coaching decisions; not a medical assessment.</div>
 </body></html>`);
-  win.document.close();
+  openReportWindow(__html, document.title);
 }
 
 
@@ -3898,6 +3901,41 @@ function jumpPanel(){
 
 function parentNotesKey(id){return 'parent_notes_'+id}
 
+
+/* Clinical measure names -> what a parent would call it.
+   Each entry: what the motion is, and why it matters in plain terms. */
+const PLAIN_MEASURE = {
+  'Early Hip IR':      {n:'turning the thigh inward',        w:'how far the leg can rotate in toward the middle of the body'},
+  'Early Hip ER':      {n:'turning the thigh outward',       w:'how far the leg can rotate away from the middle of the body'},
+  'Late Hip IR':       {n:'turning the thigh inward at depth', w:'the same inward rotation, checked deeper into the range'},
+  'Late Hip ER':       {n:'turning the thigh outward at depth', w:'the same outward rotation, checked deeper into the range'},
+  'Early Shoulder IR': {n:'rotating the arm forward',        w:'how far the arm can rotate down and forward, like finishing a throw'},
+  'Early Shoulder ER': {n:'rotating the arm back',           w:'how far the arm can lay back, like the position just before releasing a ball'},
+  'Shoulder Flexion':  {n:'reaching overhead',               w:'how far the arm can lift straight up'},
+  'Scratch Test':      {n:'reaching behind the back',        w:'a quick check of shoulder mobility in both directions'},
+  'Tibial IR':         {n:'turning the lower leg inward',    w:'rotation below the knee, which lets the foot accept a turn'},
+  'Straight Leg Raise':{n:'lifting a straight leg',          w:'how far the leg lifts with the knee locked — hamstring and hip length'},
+  'Hip Flexion':       {n:'bringing the knee to the chest',  w:'how deep the hip can fold'}
+};
+function plainName(n){const p=PLAIN_MEASURE[n];return p?p.n:String(n).toLowerCase()}
+function plainWhy(n){const p=PLAIN_MEASURE[n];return p?p.w:''}
+
+
+/* KPI labels are written for the coach; soften them for the family. */
+function parentKPI(k){
+  let s=String(k);
+  Object.keys(PLAIN_MEASURE).forEach(m=>{ s=s.replace(new RegExp(m,'i'), plainName(m)); });
+  s=s.replace(/\basymmetry\b/gi,'left vs right')
+     .replace(/Shoulder.?hip separation at rest/i,'Twist while standing')
+     .replace(/\bCMJ\b/g,'Jump')
+     .replace(/\bmRSI\b/gi,'Jump springiness')
+     .replace(/peak power/gi,'Jump power')
+     .replace(/Matched-load bar velocity/i,'Bar speed at the same weight')
+     .replace(/Weight distribution/i,'Weight on each foot')
+     .replace(/Jump peak velocity/i,'Jump speed');
+  return s.charAt(0).toUpperCase()+s.slice(1);
+}
+
 function openParentSummary(id){
   const a=id?DB.find(x=>x.id===id):(grab(),current);
   if(!a){toast('No athlete');return}
@@ -3953,7 +3991,11 @@ function openParentSummary(id){
   if(shift>=4)sportLines.push(`They stand with roughly ${loadPct.toFixed(0)}% of their weight on the ${heavy} foot instead of splitting it evenly. Over hundreds of ${isPitcher?'pitches':'swings'}, the body keeps sending force through the side it is already sitting on. That is how one side ends up doing more work than it should.`);
   flagged.slice(0,2).forEach(f=>{
     const side=f.side==='L'?'right':'left';
-    sportLines.push(`${f.n} is about ${f.pct.toFixed(0)}% more limited on the ${side} side. When a joint cannot get where it needs to go, the body finds the range somewhere else — usually somewhere that was not built to provide it.`);
+    const why=plainWhy(f.n);
+    sportLines.push(`<b>${plainName(f.n).charAt(0).toUpperCase()+plainName(f.n).slice(1)}</b> is about
+      ${f.pct.toFixed(0)}% more limited on the ${side} side${why?` — that is ${why}`:''}. When a joint
+      cannot get where it needs to go, the body finds that movement somewhere else, usually somewhere
+      that was not built to provide it.`);
   });
   if(!sportLines.length)sportLines.push(`Nothing in the assessment is standing out as a limiter right now. That is a good place to be — it means training can focus on building rather than fixing.`);
 
@@ -3966,10 +4008,10 @@ function openParentSummary(id){
   if(shift>=4)p1.push(`<b>Slow the ${heavy} side down.</b> The ${heavy} side has been doing more than
     its share and has learned to rush. Controlled work — lowering slowly, pausing at the bottom,
     stopping under control instead of bouncing — teaches it to wait for the other side.`);
-  flagged.slice(0,2).forEach(f=>p1.push(`<b>Open up the ${f.side==='L'?'right':'left'} side
-    ${f.n.toLowerCase().includes('hip')?'hip':f.n.toLowerCase().includes('shoulder')?'shoulder':'restriction'}.</b>
-    It is about ${f.pct.toFixed(0)}% more limited than the other side. Until that closes, adding load
-    to the pattern just reinforces the way around it.`));
+  flagged.slice(0,2).forEach(f=>p1.push(`<b>Free up ${plainName(f.n)} on the
+    ${f.side==='L'?'right':'left'} side.</b> It is about ${f.pct.toFixed(0)}% more limited than the
+    other side. Until that gap closes, adding weight to the movement just makes the workaround
+    stronger.`));
   if(isa==='Narrow')p1.push(`<b>Breathing work with a full exhale.</b> This sounds soft — it is not.
     It is what lets the rib cage settle and the hips get underneath, and it changes how they stand
     faster than anything else in the phase.`);
@@ -4050,10 +4092,8 @@ function openParentSummary(id){
 
   current=prev;
 
-  const win=window.open('','_blank');
-  if(!win){toast('Allow pop-ups to open the summary');return}
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>${esc(a.name||'Athlete')} — Assessment Summary</title>
+  const __html=(`<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>${esc((a.name||'Athlete').replace(/[^\w\s-]/g,''))} Assessment Summary</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 @page{size:letter;margin:15mm}
@@ -4105,21 +4145,81 @@ li{margin-bottom:6px}
 .foot{margin-top:34px;padding-top:13px;border-top:2px solid #1A2847;font-size:11px;color:#5D6E85}
 .bar{height:5px;display:flex;margin-top:22px;border-radius:3px;overflow:hidden}
 .bar i{flex:1}.bar i:first-child{background:#C8102E}.bar i:last-child{background:#1A2847}
-.tools{margin-bottom:20px;display:flex;gap:9px;flex-wrap:wrap}
+.tools{margin-bottom:10px;display:flex;gap:9px;flex-wrap:wrap}
+.howto{background:#F4F7FA;border-left:3px solid #1A2847;border-radius:0 7px 7px 0;
+  padding:11px 15px;margin-bottom:22px;font-size:12.5px;line-height:1.6;color:#3B4A5E}
 button{font:inherit;font-weight:700;padding:9px 17px;border-radius:7px;cursor:pointer;border:0}
 .b1{background:#1A2847;color:#fff}.b2{background:#fff;color:#1A2847;border:1.5px solid #1A2847}
 textarea{width:100%;min-height:110px;font:inherit;font-size:13.5px;padding:11px 13px;
   border:1.5px solid #DBE3EC;border-radius:7px;resize:vertical;color:#1A2847}
+/* ---- one-page mode ---- */
+body.compact{font-size:12.5px}
+body.compact h1{font-size:23px}
+body.compact h2{font-size:15px;margin:16px 0 7px;padding-bottom:5px}
+body.compact .lead{padding:11px 14px;margin:12px 0;font-size:13px}
+body.compact .figs{gap:14px;margin:11px 0}
+body.compact .figbox svg{max-width:132px}
+body.compact .figs{grid-template-columns:1fr 1fr;gap:10px}
+body.compact .key{margin-top:5px;font-size:9.5px}
+body.compact textarea{min-height:56px}
+body.compact .notes{padding:9px 12px}
+body.compact .notes h3{font-size:13px;margin-bottom:4px}
+body.compact .lead{margin:9px 0}
+body.compact .kpis{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+body.compact .kp .kk{font-size:9px}
+body.compact .kp .kt{font-size:10.5px}
+body.compact h2{font-size:14px;margin:12px 0 6px}
+body.compact .signs{padding:10px 13px;margin-bottom:8px}
+body.compact .signs h3{font-size:13px}
+body.compact .signs ul{margin-top:4px}
+body.compact .phh{margin-bottom:5px}
+body.compact .phw{font-size:10px}
+body.compact .ph{padding:9px 12px;margin-bottom:7px}
+body.compact .figcap{display:none}
+body.compact .figbox{padding-bottom:14px}
+/* one-page mode drops content, not just size */
+body.compact .figs{grid-template-columns:200px 1fr;align-items:center}
+body.compact .figbox:nth-child(2) svg{max-width:108px}
+body.compact .lead p{font-size:12px}
+body.compact .kpiwrap{display:none}
+body.compact .plain{display:none}
+body.compact li.cut2{display:none}
+body.compact p.cut2{display:none}
+body.compact .signs p{display:none}
+body.compact .foot{font-size:9px;margin-top:11px;padding-top:6px}
+body.compact .figcap{font-size:10px;margin-top:4px}
+body.compact .ph{padding:11px 14px;margin-bottom:9px}
+body.compact .phn{width:26px;height:26px;font-size:13px}
+body.compact .plain{font-size:12px;margin-bottom:6px}
+body.compact ul{padding-left:17px;margin-bottom:7px}
+body.compact li{margin-bottom:3px}
+body.compact .signs{padding:12px 15px;margin-bottom:9px}
+body.compact .signs h3{font-size:14px}
+body.compact .notes{padding:12px 15px}
+body.compact .foot{margin-top:16px;padding-top:8px;font-size:9.5px}
+body.compact .cut{display:none!important}
+body.compact .kpis{gap:7px}
+body.compact .kp{padding:8px 10px}
+body.compact .kp .kv{font-size:13px}
+body.compact .top{padding-bottom:9px}
 @media print{.tools,.editonly{display:none!important}body{padding:0}
   textarea{border:0;padding:0;min-height:0;height:auto;overflow:visible}
   h2{page-break-after:avoid}.ph{page-break-inside:avoid}}
 </style></head><body>
 
 <div class="tools editonly">
-  <button class="b1" onclick="window.print()">Save as PDF</button>
-  <button class="b2" onclick="mailIt()">Email this</button>
-  <span style="font-size:12.5px;color:#5D6E85;align-self:center">
-    Add your notes at the bottom before saving — they print with the report.</span>
+  <button class="b1" onclick="window.print()">1 &middot; Save as PDF</button>
+  <button class="b2" onclick="mailIt()">2 &middot; Draft the email</button>
+  <button class="b2" id="lenBtn" onclick="toggleLen()">Switch to one-page</button>
+</div>
+<div class="howto editonly">
+  <b>Add your notes at the bottom first</b> — they print with the report.<br>
+  <b>1.</b> Hit <b>Save as PDF</b>. In the print window set <b>Destination</b> to
+  <b>Save as PDF</b> (Chrome) or use the <b>PDF</b> menu bottom-left (Safari). It saves as
+  <i>${esc((a.name||'Athlete').replace(/[^\w\s-]/g,''))} Assessment Summary.pdf</i>.<br>
+  <b>2.</b> Hit <b>Draft the email</b> — it opens a message with the subject and text filled in.
+  <b>Drag the PDF you just saved into it.</b> Email links cannot attach a file on their own, so
+  that last step is manual.
 </div>
 
 <div class="top">
@@ -4153,10 +4253,10 @@ textarea{width:100%;min-height:110px;font:inherit;font-size:13.5px;padding:11px 
   ${isa?` Their rib cage sits <b>${isa==='Narrow'?'narrow':'wide'}</b>, which tells us a lot about how to load them safely in the weight room.`:''}</p>
 
 <h2>What this means on the field</h2>
-${sportLines.map(l=>`<p>${l}</p>`).join('')}
-<p>None of this means anything is wrong or that they are hurt. It means the body is solving a problem
-a certain way, and we would rather give it a better solution than keep asking it to repeat the one it
-has.</p>
+${sportLines.map((l,i)=>`<p${i>1?' class="cut"':i>0?' class="cut2"':''}>${l}</p>`).join('')}
+<p class="cut">None of this means anything is wrong or that they are hurt. It means the body is solving
+a problem a certain way, and we would rather give it a better solution than keep asking it to repeat
+the one it has.</p>
 
 <h2>The plan</h2>
 
@@ -4165,16 +4265,16 @@ has.</p>
     <div><h3>Restore</h3><span class="phw">Roughly weeks 1&ndash;3</span></div></div>
   <p class="plain">Give the body access to positions it is currently avoiding. This phase is not about
   getting stronger — it is about making sure the strength we add later has somewhere good to go.</p>
-  <ul>${p1.map(x=>`<li>${x}</li>`).join('')}</ul>
-  <p style="font-size:12.5px;color:#5D6E85;margin:0"><b>We move on when</b> the biggest side-to-side
-  differences start closing and the position holds when we add a little weight to it.</p>
+  <ul>${p1.map((x,i)=>`<li${i>2?' class="cut"':i>1?' class="cut2"':''}>${x}</li>`).join('')}</ul>
+  <p class="cut" style="font-size:12.5px;color:#5D6E85;margin:0"><b>We move on when</b> the biggest
+  side-to-side differences start closing and the position holds when we add a little weight to it.</p>
 </div>
 
 <div class="signs">
   <h3>What you should start seeing ${isPitcher?'on the mound':'in the box'}</h3>
-  <p style="font-size:13px;color:#3B4A5E;margin-bottom:9px">You do not need a stopwatch or a radar gun
-  to tell whether this is working. These are the things to watch for.</p>
-  <ul>${signs.map(x=>`<li>${x}</li>`).join('')}</ul>
+  <p class="cut" style="font-size:13px;color:#3B4A5E;margin-bottom:9px">You do not need a stopwatch or
+  a radar gun to tell whether this is working. These are the things to watch for.</p>
+  <ul>${signs.map((x,i)=>`<li${i>2?' class="cut"':i>1?' class="cut2"':''}>${x}</li>`).join('')}</ul>
 </div>
 
 <div class="ph ph2">
@@ -4183,17 +4283,17 @@ has.</p>
   <p class="plain">Now we build. Which direction we push depends on what the jump testing showed.</p>
   <p><b>For ${esc((a.name||'this athlete').split(' ')[0])}, we lean toward the ${dir==='force'?'<b>force</b> side':dir==='elastic'?'<b>elastic</b> side':'<b>both</b> sides evenly'}.</b>
   ${dirWhy}</p>
-  <ul>${dirWork.map(x=>`<li>${x}</li>`).join('')}</ul>
+  <ul>${dirWork.map((x,i)=>`<li${i>2?' class="cut"':i>1?' class="cut2"':''}>${x}</li>`).join('')}</ul>
   ${ei!=null?`<p style="font-size:12.5px;color:#5D6E85;margin:0">The number behind this: their jump
   with a dip produces ${ei>1?(ei*100-100).toFixed(0)+'% more':(100-ei*100).toFixed(0)+'% less'} power
   than a jump from a dead stop${ei<1?' — which is backwards, and one of the first things we want to change':''}.</p>`:''}
 </div>
 
-${(N.kpis&&N.kpis.length)?`<h2>What we will be watching</h2>
-<p>Three or four numbers we re-check as we go. If these move, the work is doing its job. If they
-don't, we change the plan rather than repeating it louder.</p>
-<div class="kpis">${N.kpis.map(k=>`<div class="kp"><div class="kk">${esc(String(k.k).replace(/asymmetry/gi,'left vs right').replace(/Shoulder–hip separation at rest/i,'Twist while standing'))}</div>
-  <div class="kv">${esc(String(k.now))}</div><div class="kt">Goal: ${esc(String(k.target))}</div></div>`).join('')}</div>`:''}
+${(N.kpis&&N.kpis.length)?`<div class="kpiwrap"><h2>What we will be watching</h2>
+<p class="cut">Three or four numbers we re-check as we go. If these move, the work is doing its job.
+If they don't, we change the plan rather than repeating it louder.</p>
+<div class="kpis">${N.kpis.map(k=>`<div class="kp"><div class="kk">${esc(parentKPI(k.k))}</div>
+  <div class="kv">${esc(String(k.now))}</div><div class="kt">Goal: ${esc(String(k.target))}</div></div>`).join('')}</div></div>`:''}
 
 <h2>Notes from the coach</h2>
 <div class="notes">
@@ -4209,6 +4309,10 @@ don't, we change the plan rather than repeating it louder.</p>
 <div class="bar"><i></i><i></i></div>
 
 <script>
+function toggleLen(){
+  const on=document.body.classList.toggle('compact');
+  document.getElementById('lenBtn').textContent=on?'Switch to full report':'Switch to one-page';
+}
 function mailIt(){
   var n=document.getElementById('cnotes').value;
   var subj=encodeURIComponent(${JSON.stringify((a.name||'Athlete')+' — Assessment Summary')});
@@ -4224,7 +4328,7 @@ document.getElementById('cnotes').addEventListener('input',function(){
 });
 <\/script>
 </body></html>`);
-  win.document.close();
+  openReportWindow(__html, document.title);
 }
 
 function saveParentNotes(id,v){
@@ -4453,6 +4557,22 @@ function tdReports(){
         </td></tr>`;
     }).join('')||'<tr><td colspan="6">No athletes match.</td></tr>'}
     </tbody></table></div>`;
+}
+
+
+/* Open a generated report as a real document rather than document.write().
+   A written document is not always "loaded" when print fires, which is what
+   produces a blank PDF even though the screen looks right. */
+function openReportWindow(html, title){
+  let url;
+  try{
+    url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+  }catch(e){ url=null; }
+  const win=window.open(url||'','_blank');
+  if(!win){toast('Allow pop-ups to open the report');return null}
+  if(!url){ win.document.open(); win.document.write(html); win.document.close(); }
+  else { setTimeout(()=>{try{URL.revokeObjectURL(url)}catch(e){}},60000); }
+  return win;
 }
 
 </script>
